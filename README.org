@@ -1,0 +1,28 @@
+#+TITLE:   UK Trade Data API
+#+DATE:    January 17, 2020
+#+SINCE:   {replace with next tagged release version}
+#+STARTUP: inlineimages
+
+* Table of Contents :TOC_3:noexport:
+- [[#description][Description]]
+- [[#prerequisites][Prerequisites]]
+- [[#features][Features]]
+- [[#configuration][Configuration]]
+- [[#troubleshooting][Troubleshooting]]
+
+* Description
+An API for interacting with the Trade Data found on [[https://uktradeinfo.com/][UKTradeInfo]], a website that
+publishes UK Import/Export data to both EU/NonEU countries.
+
+Adapted from previous work I did to build a Trade Data application back in 2016,
+but figured an actual API to make requests from anything would be useful for
+Govt in general.
+
+* Prerequisites
+This module has no prereqisites.
+
+* Features
+
+* Configuration
+
+* Troubleshooting
