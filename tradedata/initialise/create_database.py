@@ -36,8 +36,7 @@ def create_trade_table(engine, dict_list, table_name):
     :type table_name: String
     :raises AssertionError: Throws an error if `dict_list` is not a list.
     :raises AssertionError: Throws an error if all the dicts in `dict_list` do not contain a `name` and `type` key.
-    :return: Does not return anything; builds the
-    :rtype: Pandas dataframe
+    :return: Does not return anything; builds the table in Postgres Database supplied by `engine`.
     """
     assert type(dict_list) == type([]), "dict_list is not a list"
     assert all(['name' in x.keys() and 'type' in x.keys() for x in dict_list]), "dict_list dicts do not all contain 'name' and 'type' keys"
@@ -69,6 +68,28 @@ def create_trade_table(engine, dict_list, table_name):
 
 
 
+def create_and_load_lookup_tables(engine, filepath, table_name, dtype_dict):
+    """Loads a CSV file with String Columns and loads to the database.
+
+    :param engine: SQLAlchemy PostgreSQL Engine class.
+    :type engine: SQLAlchemy Engine class `sqlalchemy.engine.base.Engine`.
+    :param filepath: Path to the CSV file
+    :type filepath: String
+    :param table_name: Name for the table to be created.
+    :type table_name: String
+    :param dtype_dict: Dictionary with table column names as keys and SQLAlchemy Column Types as values.
+    :type dtype_dict: Dict
+    :return: Does not return anything; builds the table in Postgres Database supplied by `engine`.
+    """
+
+    lookup = pd.read_csv(filepath, dtype="object")
+    lookup.columns = dtype_dict.keys()
+    lookup.to_sql(table_name,
+                  engine,
+                  if_exists='replace',
+                  index=False,
+                  dtype=dtype_dict)
+
 # TODO Load Control File Function
 def load_control_file(path):
     # UPSERT: https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#insert-on-conflict-upsert
@@ -81,6 +102,7 @@ def load_noneu_exports(path, prefix, table, recode_dicts):
     # Recoding Border MOT
     # Recoding Inland MOT
     # Recoding Period -> Date
+    # datetime.strptime("2019/01", "%Y/%m").date()
     pass
 
 
@@ -124,46 +146,20 @@ if __name__ == '__main__':
     # Lookup Tables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     # Load Data, define dtypes, load to Postgres
-    clearance_lookup = pd.read_csv("data/lookups/clearance_lookup.csv", dtype="object")
+
     clearance_dtypes = {"name":Text, "seq":String(3), "code":String(3)}
-    clearance_lookup.columns = clearance_dtypes.keys()
-    clearance_lookup.to_sql()
-
-    country_lookup = pd.read_csv("data/lookups/country_lookup.csv", dtype="object")
-    country_dtypes = {"name":Text, "seq":String(3), "code":String(3)}
-    country_lookup.columns = country_dtypes.keys()
-    country_lookup.to_sql()
-
-    port_lookup = pd.read_csv("data/lookups/port_lookup.csv", dtype="object")
+    country_dtypes = {"name":Text, "code":String(2), "seq":String(3)}
     port_dtypes = {"name":Text, "code":String(3), "seq":String(3), "type":Text}
-    port_lookup.columns = port_dtypes.keys()
-    port_lookup.to_sql()
-
-    quantity_lookup = pd.read_csv("data/lookups/quantity_lookup.csv", dtype="object")
     quantity_dtypes = {"code":Text, "name":Text}
-    quantity_lookup.columns = quantity_dtypes.keys()
-    quantity_lookup.to_sql()
 
-#     jobs_DF.to_sql("nyc_jobs",
-#                    engine,
-#                    if_exists='replace',
-#                    schema='public',
-#                    index=False,
-#                    chunksize=500,
-#                    dtype={"job_id": Integer,
-#                           "agency": Text,
-#                           "business_title": Text,
-#                           "job_category":  Text,
-#                           "salary_range_from": Integer,
-#                           "salary_range_to": Integer,
-#                           "salary_frequency": String(50),
-#                           "work_location": Text,
-#                           "division/work_unit": Text,
-#                           "job_description": Text,
-#                           "posting_date": DateTime,
-#                           "posting_updated": DateTime})
-
-    create_lookup_tables()
+    create_and_load_lookup_tables(engine, "data/lookups/clearance_lookup.csv",
+                                  "clearance", clearance_dtypes)
+    create_and_load_lookup_tables(engine, "data/lookups/country_lookup.csv",
+                                  "country", country_dtypes)
+    create_and_load_lookup_tables(engine, "data/lookups/port_lookup.csv",
+                                  "port", port_dtypes)
+    create_and_load_lookup_tables(engine, "data/lookups/quantity_lookup.csv",
+                                  "quantity", quantity_dtypes)
 
 
     # LOAD DATA TO TRADE TABLES ----------------------------------------------------------
