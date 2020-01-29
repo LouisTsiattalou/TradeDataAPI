@@ -13,7 +13,6 @@ import zipfile
 import re
 import argparse
 
-from fnmatch import filter
 from pathlib import Path
 from tqdm import tqdm
 
@@ -50,6 +49,7 @@ def download_zipfiles(dest_path, min_year=2010, max_year=2019):
         print("The following Zip Files could not be downloaded:")
         print("\n".join(fails))
 
+
 def unzip_trade_data(data_dir):
     """Recursively unzip the files and rename for loading into the database."""
 
@@ -68,6 +68,7 @@ def unzip_trade_data(data_dir):
 
     # Recursion Activate! AAAAaAaAaaaa.....
     unzip_trade_data(data_dir)
+
 
 def check_for_missing(data_dir, min_year = 2010, max_year = 2019):
     """Check for expected files in data_dir that are missing"""
@@ -93,6 +94,7 @@ def check_for_missing(data_dir, min_year = 2010, max_year = 2019):
 
     print("Files not found:")
     print("\n".join(not_found))
+
 
 if __name__ == "__main__":
 
