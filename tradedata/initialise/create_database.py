@@ -90,35 +90,69 @@ def create_and_load_lookup_tables(engine, filepath, table_name, dtype_dict):
                   index=False,
                   dtype=dtype_dict)
 
+
+
 # TODO Load Control File Function
-def load_control_file(path):
+def etl_control_table(path, spec_dict):
     # UPSERT: https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#insert-on-conflict-upsert
+    # Use Skiprows or skipfooter for read_csv to ignore first and last row. skiprows = lambda x: x[1:-1])
     pass
 
 
+# TODO etl_trade_table Assertions & Docstring
+def etl_trade_table(path, spec_dict, recode_dict, date_format):
+    """Loads and manipulates the EU/NonEU Import/Export files
 
-# TODO Load Control File Function
-def load_noneu_exports(path, prefix, table, recode_dicts):
-    # Recoding Border MOT
-    # Recoding Inland MOT
-    # Recoding Period -> Date
-    # datetime.strptime("2019/01", "%Y/%m").date()
-    pass
+    :param path: Path to the Trade Data File
+    :type path: pathlib.Path() object, or str.
+    :param spec_list: Specification for the data file to be loaded.
+    :type spec_list: List of Dictionaries with keys `name` and `type`.
+    :param recode_dict: Dict of Dicts that specifies recoding for data columns.
+    :type recode_dict: Dictionary with keys corresponding to column names from `spec_list`.
+    :param date_format: `strptime` Date String to transform date columns.
+    :type date_format: String.
+    :raises AssertionError: If the `name` or `type` column is not found in every dict contained within the spec_list argument, the function will fail.
+    :return: Returns a processed DataFrame.
+    """
+    assert type(path) == type("") | type(path) == type(Path(".")), "`path` is not a pathlib Path or string."
+    assert type(spec_list) == type({}), "`spec_list` is not a dictionary."
+    assert all(["name" in x.keys() for x in spec_list]), "`name` column not found in all column specifications in `spec_list`"
+    assert all(["type" in x.keys() for x in spec_list]), "`type` column not found in all column specifications in `spec_list`"
+    assert type(recode_dict) == type({}), "`recode_dict` is not a dictionary."
 
+    # Load Table
+    path = Path(path)
+    data = pd.read_csv(path, sep = "|", header = None,
+                       names = column_names, dtype = 'str', skiprows = 1)
 
+    # Process spec_list
+    specification = pd.DataFrame(spec_list)
 
-def load_noneu_imports(path, prefix, table):
-    # Recoding Border MOT
-    # Recoding Inland MOT
-    # Recoding Period -> Date
-    pass
+    # Convert Column DataTypes
+    for i in range(0,len(specification)):
+        column = specification["name"][i]
+        col_dtype = specification["type"][i]
 
+        if re.findall("char", col_dtype) or re.findall("str", col_dtype):
+            data[column] = data[column].astype("str")
+        elif re.findall("date", col_dtype):
+            data[column] = [datetime.strptime(x, date_format).date() for x in data[column]]
+        elif re.findall("bigint", col_dtype):
+            data[column] = data[column].astype("int64")
+        elif re.findall("int", col_dtype):
+            data[column] = data[column].astype("int32")
+        elif re.findall("float", col_dtype):
+            data[column] = data[column].astype("float")
+        elif re.findall("boo", col_dtype):
+            data[column] = data[column].astype("bool")
+        else:
+            data.drop(column, axis = 1)
 
+    # Recode Columns
+    for column in recode_dict.keys():
+        data[column].replace(recode_dict[column], inplace=True)
 
-def load_eu_trade(path, prefix, table):
-    # Recoding Border MOT
-    # Recoding Period -> Date
-    pass
+    return data
 
 
 
@@ -144,9 +178,7 @@ if __name__ == '__main__':
         create_trade_table(engine, specification["columns"], table)
 
     # Lookup Tables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
     # Load Data, define dtypes, load to Postgres
-
     clearance_dtypes = {"name":Text, "seq":String(3), "code":String(3)}
     country_dtypes = {"name":Text, "code":String(2), "seq":String(3)}
     port_dtypes = {"name":Text, "code":String(3), "seq":String(3), "type":Text}
