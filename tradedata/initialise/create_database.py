@@ -71,25 +71,12 @@ def create_trade_table(engine, dict_list, table_name):
     assert all(['name' in x.keys() and 'type' in x.keys() for x in dict_list]), "dict_list dicts do not all contain 'name' and 'type' keys"
 
     # Generate Columns for Table. Ignore REMOVEs
-    columns = []
-    for i,column in enumerate(dict_list):
-        if column["type"] == "boolean":
-            columns.append(Column(column["name"], Boolean()))
-        elif column["type"] == "integer":
-            columns.append(Column(column["name"], Integer()))
-        elif column["type"] == "bigint":
-            columns.append(Column(column["name"], BigInteger()))
-        elif column["type"] == "float":
-            columns.append(Column(column["name"], Float()))
-        elif column["type"] == "varchar":
-            columns.append(Column(column["name"], String()))
-        elif column["type"] == "text":
-            columns.append(Column(column["name"], Text()))
-        elif re.findall("char", column["type"]):
-            stringlength = int(re.findall("[0-9]", column["type"])[0])
-            columns.append(Column(column["name"], String(stringlength)))
+    table_spec = parse_specification(dict_list)
 
-    print(columns)
+    columns = []
+    for column in dict_list:
+        columns.append(Column(column["name"], table_spec[column["name"]]))
+
     metadata = MetaData()
     data = Table(table_name, metadata, *columns)
     metadata.create_all(engine)
@@ -128,8 +115,7 @@ def etl_control_table(path, spec_dict):
     pass
 
 
-# TODO etl_trade_table Assertions & Docstring
-def etl_trade_table(path, spec_dict, recode_dict, date_format):
+def etl_trade_table(path, spec_list, recode_dict, date_format):
     """Loads and manipulates the EU/NonEU Import/Export files
 
     :param path: Path to the Trade Data File
