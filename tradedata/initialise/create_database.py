@@ -10,10 +10,12 @@ Programatically create and populate the Trade Data Database.
 import json
 import pandas as pd
 import re
+from pathlib import Path
+from datetime import datetime
 
 from sqlalchemy import create_engine
 from sqlalchemy import MetaData
-from sqlalchemy import Table, Column, String, Integer, Float, Boolean, BigInteger, Text
+from sqlalchemy import Table, Column, String, Integer, Float, Boolean, BigInteger, Text, CHAR
 from sqlalchemy.dialects.postgresql import insert
 
 
@@ -22,6 +24,33 @@ def connect_to_postgres(username = "", password = "", host = "localhost", databa
     """Returns a SQLAlchemy PostgreSQL engine using psycopg2"""
     engine = create_engine(f'postgresql+psycopg2://{username}:{password}@{host}/{database}')
     return engine
+
+
+def parse_specification(dict_list):
+    """Returns a Dictionary of name : SQLAlchemy dtypes from specification jsons"""
+
+    names = [x["name"] for x in dict_list]
+
+    dtypes = []
+    for column in dict_list:
+        if column["type"] == "boolean":
+            dtypes.append(Boolean())
+        elif column["type"] == "integer":
+            dtypes.append(Integer())
+        elif column["type"] == "bigint":
+            dtypes.append(BigInteger())
+        elif column["type"] == "float":
+            dtypes.append(Float())
+        elif column["type"] == "text":
+            dtypes.append(Text())
+        elif column["type"] == "varchar":
+            stringlength = int(re.findall("[0-9]+", column["type"])[0])
+            dtypes.append(String(stringlength))
+        elif re.findall("char", column["type"]):
+            stringlength = int(re.findall("[0-9]+", column["type"])[0])
+            dtypes.append(CHAR(stringlength))
+
+    return dict(zip(names,dtypes))
 
 
 
