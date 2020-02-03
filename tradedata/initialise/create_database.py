@@ -108,11 +108,40 @@ def create_and_load_lookup_tables(engine, filepath, table_name, dtype_dict):
 
 
 
-# TODO Load Control File Function
-def etl_control_table(path, spec_dict):
-    # UPSERT: https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#insert-on-conflict-upsert
-    # Use Skiprows or skipfooter for read_csv to ignore first and last row. skiprows = lambda x: x[1:-1])
-    pass
+def etl_control_table(path, spec_list):
+    """Loads and manipulates the Control files (Comcode Lookups)
+
+    :param path: Path to the Trade Data File
+    :type path: pathlib.Path() object, or str.
+    :param spec_list: Specification for the data file to be loaded.
+    :type spec_list: List of Dictionaries with keys `name` and `type`.
+    :raises AssertionError: If the `name` column is not found in every dict contained within the spec_list argument, the function will fail.
+    :return: Returns a processed DataFrame.
+    """
+    assert type(spec_list) == type([]), "`spec_list` is not a list."
+    assert all(["name" in x.keys() for x in spec_list]), "`name` column not found in all column specifications in `spec_list`"
+
+    # Read Control File, kill NULs and split by newline & delim
+    path = Path(path)
+    x_file = open(path, "r", encoding = "windows-1252").read().replace("\0","").split("\n")
+    x_file = [x.split("|") for x in x_file]
+
+    # Kill first, last and second last row
+    x_file = x_file[1:-2]
+
+    # If len(x_file[i] == 28), there is a double description column that needs to be merged.
+    if len(x_file[0]) == 28:
+        for i in range(len(x_file)):
+            x_file[i][26] = x_file[i][26].strip() + " " + x_file[i].pop().strip()
+
+    # Convert To DataFrame, make pretty
+    data = pd.DataFrame(x_file)
+    data = data.iloc[:,[0,1,24,25,26]]
+    data.columns = [x["name"] for x in spec_list]
+    data["comcode"] = data["comcode"].str[0:-1]
+
+    return data
+
 
 
 def etl_trade_table(path, spec_list, recode_dict, date_format):
@@ -130,13 +159,14 @@ def etl_trade_table(path, spec_list, recode_dict, date_format):
     :return: Returns a processed DataFrame.
     """
     assert type(path) == type("") | type(path) == type(Path(".")), "`path` is not a pathlib Path or string."
-    assert type(spec_list) == type({}), "`spec_list` is not a dictionary."
+    assert type(spec_list) == type([]), "`spec_list` is not a list."
     assert all(["name" in x.keys() for x in spec_list]), "`name` column not found in all column specifications in `spec_list`"
     assert all(["type" in x.keys() for x in spec_list]), "`type` column not found in all column specifications in `spec_list`"
     assert type(recode_dict) == type({}), "`recode_dict` is not a dictionary."
 
     # Load Table
     path = Path(path)
+    column_names = [x["name"] for x in spec_list]
     data = pd.read_csv(path, sep = "|", header = None,
                        names = column_names, dtype = 'str', skiprows = 1)
 
@@ -166,6 +196,7 @@ def etl_trade_table(path, spec_list, recode_dict, date_format):
     # Recode Columns
     for column in recode_dict.keys():
         data[column].replace(recode_dict[column], inplace=True)
+    data["comcode"] = data["comcode"].str[0:-1]
 
     return data
 
