@@ -252,6 +252,13 @@ if __name__ == '__main__':
     recode_mot = json.loads(open("data/lookups/recode_mode_of_transport.json", "r").read())
     recode_mot = {int(i):x for i,x in recode_mot.items()}
 
+    # Table Specifications
+    controlfilecols = json.loads(open(table_specs["control"], "r").read())
+    eutradecols = json.loads(open(table_specs["arrivals"], "r").read())
+    noneuimportcols = json.loads(open(table_specs["imports"], "r").read())
+    noneuexportcols = json.loads(open(table_specs["exports"], "r").read())
+
+    # File List
     data_dir = Path("data/")
     files = data_dir.glob("*")
 
