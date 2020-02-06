@@ -16,6 +16,7 @@ from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy import MetaData
 from sqlalchemy import Table, Column, String, Integer, Float, Boolean, BigInteger, Text, CHAR
+from sqlalchemy import ForeignKey, Index, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import insert
 
 
@@ -240,6 +241,22 @@ if __name__ == '__main__':
                                   "quantity", quantity_dtypes)
 
 
+    # CREATE CONSTRAINTS ON ALL TABLES ---------------------------------------------------
+
+    # Welp, looks like SQLAlchemy doesn't provide methods for creating indices &
+    # constraints after creation. Let's just do normal SQL.
+    with engine.connect() as con:
+        # PK on Lookups & Control
+        con.execute('ALTER TABLE clearance ADD PRIMARY KEY (code);')
+        con.execute('ALTER TABLE country ADD PRIMARY KEY (code);')
+        con.execute('ALTER TABLE quantity ADD PRIMARY KEY (code);')
+        con.execute('ALTER TABLE port ADD PRIMARY KEY (code);')
+        con.execute('ALTER TABLE control ADD PRIMARY KEY (comcode);')
+
+        # Not doing FKs at this stage; there are like 24 in total.
+
+
+
     # LOAD DATA TO TRADE TABLES ----------------------------------------------------------
     # File Prefix - Table Mapping
     trade_files = {
@@ -268,7 +285,9 @@ if __name__ == '__main__':
         file_type = trade_file.stem[0:6].upper()
         table_name = trade_files[file_type]
         if table_name == "control":
-            pass
+            # UPSERT: https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#insert-on-conflict-upsert
+            data = etl_control_table(trade_file, controlfilecols["columns"])
+           
         elif table_name == "dispatches" | table_name == "arrivals":
             recode_dict = {"border_mot":recode_mot}
             data = etl_trade_table(trade_file, eutradecols["columns"],
