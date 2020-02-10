@@ -209,6 +209,10 @@ def etl_trade_table(path, spec_list, recode_dict, date_format):
 # Main Program Loop
 if __name__ == '__main__':
 
+    # CONNECT TO DATABASE ----------------------------------------------------------------
+    engine = connect_to_postgres(username = "postgres", password = "postgres",
+                                 host = "localhost", database = "trade")
+
     # CREATE TABLES ----------------------------------------------------------------------
 
     # Trade Tables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -248,13 +252,13 @@ if __name__ == '__main__':
 
     # Welp, looks like SQLAlchemy doesn't provide methods for creating indices &
     # constraints after creation. Let's just do normal SQL.
-    with engine.connect() as con:
+    with engine.connect() as conn:
         # PK on Lookups & Control
-        con.execute('ALTER TABLE clearance ADD PRIMARY KEY (code);')
-        con.execute('ALTER TABLE country ADD PRIMARY KEY (code);')
-        con.execute('ALTER TABLE quantity ADD PRIMARY KEY (code);')
-        con.execute('ALTER TABLE port ADD PRIMARY KEY (code);')
-        con.execute('ALTER TABLE control ADD PRIMARY KEY (comcode);')
+        conn.execute('ALTER TABLE clearance ADD PRIMARY KEY (code);')
+        conn.execute('ALTER TABLE country ADD PRIMARY KEY (code);')
+        conn.execute('ALTER TABLE quantity ADD PRIMARY KEY (code);')
+        conn.execute('ALTER TABLE port ADD PRIMARY KEY (code);')
+        conn.execute('ALTER TABLE control ADD PRIMARY KEY (comcode);')
 
         # Not doing FKs at this stage; there are like 24 in total.
 
