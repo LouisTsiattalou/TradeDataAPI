@@ -161,7 +161,7 @@ def etl_trade_table(path, spec_list, recode_dict, date_format):
     :raises AssertionError: If the `name` or `type` column is not found in every dict contained within the spec_list argument, the function will fail.
     :return: Returns a processed DataFrame.
     """
-    assert type(path) == type("") | type(path) == type(Path(".")), "`path` is not a pathlib Path or string."
+    assert type(path) == type("") or type(path) == type(Path(".")), "`path` is not a pathlib Path or string."
     assert type(spec_list) == type([]), "`spec_list` is not a list."
     assert all(["name" in x.keys() for x in spec_list]), "`name` column not found in all column specifications in `spec_list`"
     assert all(["type" in x.keys() for x in spec_list]), "`type` column not found in all column specifications in `spec_list`"
@@ -171,7 +171,8 @@ def etl_trade_table(path, spec_list, recode_dict, date_format):
     path = Path(path)
     column_names = [x["name"] for x in spec_list]
     data = pd.read_csv(path, sep = "|", header = None,
-                       names = column_names, dtype = 'str', skiprows = 1)
+                       names = column_names, dtype = 'str',
+                       skiprows = 1, skipfooter = 1)
 
     # Process spec_list
     specification = pd.DataFrame(spec_list)
