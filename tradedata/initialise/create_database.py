@@ -284,24 +284,44 @@ if __name__ == '__main__':
 
     # File List
     data_dir = Path("data/")
-    files = data_dir.glob("*")
+    files = [x for x in data_dir.glob("*") if x.is_file()]
+    files.sort()
 
-    # TODO Add Control File
+    # TODO Test Control File Load
+    # TODO Test Full Load
     # Load data to tables
     for trade_file in files:
         file_type = trade_file.stem[0:6].upper()
         table_name = trade_files[file_type]
+        print(f"Processing {trade_file}...")
+
         if table_name == "control":
-            # UPSERT: https://docs.sqlalchemy.org/en/13/dialects/postgresql.html#insert-on-conflict-upsert
+            # Data load
             data = etl_control_table(trade_file, controlfilecols["columns"])
-           
-        elif table_name == "dispatches" | table_name == "arrivals":
+            # Connect to Table
+            metadata = MetaData()
+            control = Table('control', metadata, autoload=True, autoload_with=engine)
+
+            # Execute Update
+            conn = engine.connect()
+            for i in range(len(data)):
+                if i % 1000 == 0: print(f"Insert: {i}/{len(data)}")
+
+                insert_data = dict(data.iloc[i,:])
+                insert_stmt = insert(control).values(insert_data)
+                do_update_stmt = insert_stmt.on_conflict_do_update(
+                    constraint='control_pkey', set_=insert_data)
+                conn.execute(do_update_stmt)
+
+
+        elif table_name == "dispatches" or table_name == "arrivals":
             recode_dict = {"border_mot":recode_mot}
             data = etl_trade_table(trade_file, eutradecols["columns"],
                                    recode_dict, "0%Y%m")
             spec_list = parse_specification(eutradecols["columns"])
             data.to_sql(table_name, engine, if_exists='append',
                         index=False, dtype=dtype_dict)
+
         elif table_name == "imports":
             recode_dict = {"border_mot":recode_mot, "inland_mot":recode_mot}
             data = etl_trade_table(trade_file, noneuimportcols["columns"],
@@ -309,6 +329,7 @@ if __name__ == '__main__':
             spec_list = parse_specification(noneuimportcols["columns"])
             data.to_sql(table_name, engine, if_exists='append',
                         index=False, dtype=dtype_dict)
+
         elif table_name == "exports":
             recode_dict = {"border_mot":recode_mot, "inland_mot":recode_mot}
             data = etl_trade_table(trade_file, noneuexportcols["columns"],
