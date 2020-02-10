@@ -10,6 +10,7 @@ Programatically create and populate the Trade Data Database.
 import json
 import pandas as pd
 import re
+import os
 from pathlib import Path
 from datetime import datetime
 
@@ -122,7 +123,7 @@ def etl_control_table(path, spec_list):
     assert type(spec_list) == type([]), "`spec_list` is not a list."
     assert all(["name" in x.keys() for x in spec_list]), "`name` column not found in all column specifications in `spec_list`"
 
-    # Read Control File, kill NULs and split by newline & delim
+    # Read Control File as string, kill NULs and split by newline & delim into list of lists
     path = Path(path)
     x_file = open(path, "r", encoding = "windows-1252").read().replace("\0","").split("\n")
     x_file = [x.split("|") for x in x_file]
@@ -137,9 +138,10 @@ def etl_control_table(path, spec_list):
 
     # Convert To DataFrame, make pretty
     data = pd.DataFrame(x_file)
-    data = data.iloc[:,[0,1,24,25,26]]
+    data = data.iloc[:,[0,7,24,25,26]]
     data.columns = [x["name"] for x in spec_list]
     data["comcode"] = data["comcode"].str[0:-1]
+    data = data.apply(lambda x: x.str.strip())
 
     return data
 
