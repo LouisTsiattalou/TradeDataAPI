@@ -293,8 +293,8 @@ if __name__ == '__main__':
     }
 
     # Recoding Dicts
-    recode_mot = json.loads(open("data/lookups/recode_mode_of_transport.json", "r").read())
-    recode_mot = {int(i):x for i,x in recode_mot.items()}
+    recode_inland_mot = json.loads(open("data/lookups/recode_mode_of_transport.json", "r").read())
+    recode_border_mot = {"0"+x:y for (x,y) in recode_inland_mot.items()}
 
     # Table Specifications
     controlfilecols = json.loads(open(table_specs["control"], "r").read())
@@ -307,8 +307,6 @@ if __name__ == '__main__':
     files = [x for x in data_dir.glob("*") if x.is_file()]
     files.sort()
 
-    # TODO Test Control File Load
-    # TODO Test Full Load
     # Load data to tables
     for trade_file in files:
         file_type = trade_file.stem[0:6].upper()
@@ -335,25 +333,28 @@ if __name__ == '__main__':
 
 
         elif table_name == "dispatches" or table_name == "arrivals":
-            recode_dict = {"border_mot":recode_mot}
+            recode_dict = {}
             data = etl_trade_table(trade_file, eutradecols["columns"],
                                    recode_dict, "0%Y%m")
-            spec_list = parse_specification(eutradecols["columns"])
+            dtype_dict = parse_specification(eutradecols["columns"])
             data.to_sql(table_name, engine, if_exists='append',
                         index=False, dtype=dtype_dict)
 
         elif table_name == "imports":
-            recode_dict = {"border_mot":recode_mot, "inland_mot":recode_mot}
+            recode_dict = {"border_mot":recode_border_mot, "inland_mot":recode_inland_mot}
             data = etl_trade_table(trade_file, noneuimportcols["columns"],
                                    recode_dict, "%m/%Y")
-            spec_list = parse_specification(noneuimportcols["columns"])
+            dtype_dict = parse_specification(noneuimportcols["columns"])
             data.to_sql(table_name, engine, if_exists='append',
                         index=False, dtype=dtype_dict)
 
         elif table_name == "exports":
-            recode_dict = {"border_mot":recode_mot, "inland_mot":recode_mot}
+            recode_dict = {"border_mot":recode_border_mot, "inland_mot":recode_inland_mot}
             data = etl_trade_table(trade_file, noneuexportcols["columns"],
                                    recode_dict, "%m/%Y")
-            spec_list = parse_specification(noneuexportcols["columns"])
+            dtype_dict = parse_specification(noneuexportcols["columns"])
             data.to_sql(table_name, engine, if_exists='append',
                         index=False, dtype=dtype_dict)
+
+
+# TODO Indices
