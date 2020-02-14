@@ -48,14 +48,19 @@ def parse_specification(dict_list):
             dtypes.append(Float())
         elif column["type"] == "text":
             dtypes.append(Text())
-        elif column["type"] == "varchar":
+        elif re.findall("varchar", column["type"]):
             stringlength = int(re.findall("[0-9]+", column["type"])[0])
             dtypes.append(String(stringlength))
         elif re.findall("char", column["type"]):
             stringlength = int(re.findall("[0-9]+", column["type"])[0])
             dtypes.append(CHAR(stringlength))
+        else:
+            dtypes.append("REMOVE")
 
-    return dict(zip(names,dtypes))
+    dtypes_dict = dict(zip(names,dtypes))
+    dtypes_dict = {name:dtype for (name,dtype) in dtypes_dict.items() if not dtype == "REMOVE"}
+
+    return dtypes_dict
 
 
 
@@ -79,8 +84,8 @@ def create_trade_table(engine, dict_list, table_name):
     table_spec = parse_specification(dict_list)
 
     columns = []
-    for column in dict_list:
-        columns.append(Column(column["name"], table_spec[column["name"]]))
+    for column in table_spec.keys():
+        columns.append(Column(column, table_spec[column]))
 
     metadata = MetaData()
     data = Table(table_name, metadata, *columns)
@@ -211,7 +216,7 @@ def etl_trade_table(path, spec_list, recode_dict, date_format):
         elif re.findall("boo", col_dtype):
             data[column] = data[column].astype("bool")
         else:
-            data.drop(column, axis = 1)
+            data.drop(column, axis = 1, inplace = True)
 
     # Recode Columns
     for column in recode_dict.keys():
