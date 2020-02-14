@@ -357,4 +357,20 @@ if __name__ == '__main__':
                         index=False, dtype=dtype_dict)
 
 
-# TODO Indices
+    # GENERATE INDICES ON TABLES ---------------------------------------------------------
+    indices = {
+        "imports":["comcode", "cod_code", "coo_code", "date", "port_code"],
+        "exports":["comcode", "cod_code", "date", "port_code"],
+        "arrivals":["comcode", "cod_code", "date"],
+        "dispatches":["comcode", "cod_code", "date"],
+        "control":["comcode"]
+    }
+
+    for table in indices.keys():
+        metadata = MetaData()
+        sql_table = Table(table, metadata, autoload=True, autoload_with=engine)
+
+        for col in indices[table]:
+            print(f"Creating Index on Column {col} for Table {table}")
+            sql_col = sql_table.c.get(col)
+            Index(f"ix_{table}_{col}", sql_col).create(engine)
