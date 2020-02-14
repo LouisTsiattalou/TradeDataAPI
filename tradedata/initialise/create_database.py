@@ -13,10 +13,11 @@ import re
 import os
 from pathlib import Path
 from datetime import datetime
+from datetime import timedelta
 
 from sqlalchemy import create_engine
 from sqlalchemy import MetaData
-from sqlalchemy import Table, Column, String, Integer, Float, Boolean, BigInteger, Text, CHAR
+from sqlalchemy import Table, Column, String, Integer, Float, Boolean, BigInteger, Text, CHAR, Date
 from sqlalchemy import ForeignKey, Index, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import insert
 
@@ -37,6 +38,8 @@ def parse_specification(dict_list):
     for column in dict_list:
         if column["type"] == "boolean":
             dtypes.append(Boolean())
+        elif column["type"] == "date":
+            dtypes.append(Date())
         elif column["type"] == "integer":
             dtypes.append(Integer())
         elif column["type"] == "bigint":
@@ -182,10 +185,23 @@ def etl_trade_table(path, spec_list, recode_dict, date_format):
         column = specification["name"][i]
         col_dtype = specification["type"][i]
 
-        if re.findall("char", col_dtype) or re.findall("str", col_dtype):
+        # Special handling for 13 month dates in EU Trade
+        if re.findall("date", col_dtype):
+            dates = data[column]
+            dates_transformed = [""] * len(data)
+            for i,date in enumerate(dates):
+                if re.search("020..13", date):
+                    date_transformed = datetime.strptime(date[0:5] + "12", date_format).date()
+                    date_transformed = date_transformed + timedelta(days = 30) # Set to YYYY/12/31
+                    dates_transformed[i] = date_transformed
+                elif date == "0000000":
+                    dates_transformed[i] = datetime.strptime(str(trade_file)[-4:] + "01", "%y%m%d").date() # Set to current year/month
+                else:
+                    dates_transformed[i] = datetime.strptime(date, date_format).date()
+            data[column] = dates_transformed
+        # All Other Types
+        elif re.findall("char", col_dtype) or re.findall("str", col_dtype):
             data[column] = data[column].astype("str")
-        elif re.findall("date", col_dtype):
-            data[column] = [datetime.strptime(x, date_format).date() for x in data[column]]
         elif re.findall("bigint", col_dtype):
             data[column] = data[column].astype("int64")
         elif re.findall("int", col_dtype):
@@ -261,7 +277,6 @@ if __name__ == '__main__':
         conn.execute('ALTER TABLE control ADD PRIMARY KEY (comcode);')
 
         # Not doing FKs at this stage; there are like 24 in total.
-
 
 
     # LOAD DATA TO TRADE TABLES ----------------------------------------------------------
