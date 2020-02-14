@@ -108,7 +108,7 @@ def create_and_load_lookup_tables(engine, filepath, table_name, dtype_dict):
     :return: Does not return anything; builds the table in Postgres Database supplied by `engine`.
     """
 
-    lookup = pd.read_csv(filepath, dtype="object")
+    lookup = pd.read_csv(filepath, dtype="object", keep_default_na=False)
     lookup.columns = dtype_dict.keys()
     lookup.to_sql(table_name,
                   engine,
@@ -180,7 +180,7 @@ def etl_trade_table(path, spec_list, recode_dict, date_format):
     column_names = [x["name"] for x in spec_list]
     data = pd.read_csv(path, sep = "|", header = None,
                        names = column_names, dtype = 'str',
-                       skiprows = 1, skipfooter = 1)
+                       skiprows = 1, skipfooter = 1, keep_default_na = False)
 
     # Process spec_list
     specification = pd.DataFrame(spec_list)
