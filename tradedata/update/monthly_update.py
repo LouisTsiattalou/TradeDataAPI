@@ -5,10 +5,18 @@ DATE STARTED: 2020-02-17
 REPOSITORY: https://github.com/LouisTsiattalou/TradeDataAPI
 DESCRIPTION:
 Update the database with each month's new data.
+
+Interesting tidbit; module imports work fine with REPL and `python3 -m
+tradedata.update.monthly_update --args`, but not `python3
+tradedata/update/monthly_update.py --args` because the latter has the current
+working directory set to the update folder when it runs...
 """
 
 import wget
 from pathlib import Path
+import os
+import argparse
+import json
 
 from tradedata.initialise.download_data import unzip_trade_data
 from tradedata.initialise.create_database import connect_to_postgres
@@ -97,8 +105,12 @@ if __name__ == '__main__':
 
     # DOWNLOAD DATA ======================================================================
     update_path = Path(data_dir)
-    download_individual_zipfiles(data_dir, list(trade_files.keys()),
+    download_individual_zipfiles(update_path, list(trade_files.keys()),
                                  month = data_month, year = data_year)
+
+    unzip_trade_data(update_path)
+
+
 
     # LOAD TO DATABASE ===================================================================
     # TODO Test if month has been loaded
