@@ -23,6 +23,8 @@ from tradedata.initialise.create_database import connect_to_postgres
 from tradedata.initialise.create_database import etl_control_table
 from tradedata.initialise.create_database import etl_trade_table
 
+
+
 def download_individual_zipfiles(dest_path, prefixes, month = "01", year = "20"):
     """Downloads single month trade data zip files from UKTradeInfo"""
     url = "https://www.uktradeinfo.com/Statistics/Documents/Data Downloads/"
@@ -51,6 +53,30 @@ def download_individual_zipfiles(dest_path, prefixes, month = "01", year = "20")
         print("\n".join(fails))
 
 
+
+def check_month_in_database(engine, datestring, threshold=50000):
+    """
+    Check tables don't have data in them already by loading # records and comparing them to threshold.
+    Returns list of tables to load for the month passed in the argument.
+    """
+
+    def return_monthly_records(engine, table_name, datestring):
+        """Query Database to return monthly records from Postgres"""
+        with engine.connect() as conn:
+            records = conn.execute(f"SELECT COUNT(date) FROM {table_name} WHERE date = '{datestring}'")
+            records = records.fetchone()[0]
+        return records
+
+    table_records = {}
+    for table in ["exports", "imports", "dispatches", "arrivals"]:
+        records = return_monthly_records(engine, table, datestring)
+        table_records[table] = records
+
+    tables_to_load = ["control"] + [table for (table,records) in table_records.items() if records > threshold]
+
+    return tables_to_load
+
+
 if __name__ == '__main__':
 
     # Parse Arguments
@@ -58,10 +84,10 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--target",
                         help="Target directory for the files. Created if it does not exist.",
                         required = True, default = 'data/monthlyupdate/')
-    parser.add_argument("--year",
+    parser.add_argument("-y", "--year",
                         help="Year to be downloaded; 2 digit string.",
                         required = True, default = '2020')
-    parser.add_argument("--month",
+    parser.add_argument("-m", "--month",
                         help="Month to be downloaded; 2 digit string.",
                         required = True, default = '01')
 
@@ -110,14 +136,14 @@ if __name__ == '__main__':
 
     unzip_trade_data(update_path)
 
-
-
-    # LOAD TO DATABASE ===================================================================
-    # TODO Test if month has been loaded
-    # TODO Data Load
-
+    # CHECK DATABASE FOR UPDATE ==========================================================
     # Connect to Database
     engine = connect_to_postgres(username = "postgres", password = "postgres",
                                  host = "localhost", database = "trade")
 
-    #
+    # Return table names if they don't contain data arg year/month combination
+    datestring = f"20{data_year}{data_month}01"
+    tables_to_load = check_month_in_database(engine, datestring, 50000)
+
+    # LOAD DATA TO DATABASE ==============================================================
+    # TODO Data Load
