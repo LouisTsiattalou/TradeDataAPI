@@ -147,3 +147,12 @@ if __name__ == '__main__':
 
     # LOAD DATA TO DATABASE ==============================================================
     # TODO Data Load
+    # Load Files
+
+    # ETL Scripts
+
+    # Load to Database
+
+
+    # CLEAR DOWNLOAD FOLDER
+    # TODO

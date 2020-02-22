@@ -227,6 +227,29 @@ def etl_trade_table(path, spec_list, recode_dict, date_format):
 
 
 
+def load_control_table(path, engine, spec_list):
+    # TODO Better Docstring
+    """Does necessary transformations using etl_control_table and UPSERTs to database."""
+
+    # Data load
+    data = etl_control_table(path, spec_list)
+    # Connect to Table
+    metadata = MetaData()
+    control = Table('control', metadata, autoload=True, autoload_with=engine)
+
+    # Execute Update
+    conn = engine.connect()
+    for i in range(len(data)):
+        if i % 1000 == 0: print(f"Insert: {i}/{len(data)}")
+
+        insert_data = dict(data.iloc[i,:])
+        insert_stmt = insert(control).values(insert_data)
+        do_update_stmt = insert_stmt.on_conflict_do_update(
+            constraint='control_pkey', set_=insert_data)
+        conn.execute(do_update_stmt)
+
+
+
 # Main Program Loop
 if __name__ == '__main__':
 
@@ -314,23 +337,7 @@ if __name__ == '__main__':
         print(f"Processing {trade_file}...")
 
         if table_name == "control":
-            # Data load
-            data = etl_control_table(trade_file, controlfilecols["columns"])
-            # Connect to Table
-            metadata = MetaData()
-            control = Table('control', metadata, autoload=True, autoload_with=engine)
-
-            # Execute Update
-            conn = engine.connect()
-            for i in range(len(data)):
-                if i % 1000 == 0: print(f"Insert: {i}/{len(data)}")
-
-                insert_data = dict(data.iloc[i,:])
-                insert_stmt = insert(control).values(insert_data)
-                do_update_stmt = insert_stmt.on_conflict_do_update(
-                    constraint='control_pkey', set_=insert_data)
-                conn.execute(do_update_stmt)
-
+            load_control_table(trade_file, engine, spec_list)
 
         elif table_name == "dispatches" or table_name == "arrivals":
             recode_dict = {}
