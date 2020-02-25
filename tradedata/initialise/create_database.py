@@ -250,6 +250,34 @@ def load_control_table(path, engine, spec_list):
 
 
 
+def load_trade_table(trade_file, engine, table_name, spec_list, recode_dict, datestring):
+    # TODO Better Docstring
+    """Load Trade Table to Database"""
+    data = etl_trade_table(trade_file, spec_list, recode_dict, datestring)
+    dtype_dict = parse_specification(spec_list)
+    data.to_sql(table_name, engine, if_exists='append',
+                index=False, dtype=dtype_dict)
+
+
+def generate_indices(engine, index_dict):
+    # TODO Better Docstring
+    """Creates indices on multiple tables in a SQL database.
+
+    Takes the table names as keys, and the columns as values (in a list).
+    """
+
+    for table in index_dict.keys():
+        metadata = MetaData()
+        sql_table = Table(table, metadata, autoload=True, autoload_with=engine)
+
+        for col in index_dict[table]:
+            print(f"Creating Index on Column {col} for Table {table}")
+            sql_col = sql_table.c.get(col)
+            Index(f"ix_{table}_{col}", sql_col).create(engine)
+
+
+
+
 # Main Program Loop
 if __name__ == '__main__':
 
@@ -341,27 +369,18 @@ if __name__ == '__main__':
 
         elif table_name == "dispatches" or table_name == "arrivals":
             recode_dict = {}
-            data = etl_trade_table(trade_file, eutradecols["columns"],
-                                   recode_dict, "0%Y%m")
-            dtype_dict = parse_specification(eutradecols["columns"])
-            data.to_sql(table_name, engine, if_exists='append',
-                        index=False, dtype=dtype_dict)
+            load_trade_table(trade_file, engine, table_name,
+                             eutradecols["columns"], recode_dict, "0%Y%m")
 
         elif table_name == "imports":
             recode_dict = {"border_mot":recode_border_mot, "inland_mot":recode_inland_mot}
-            data = etl_trade_table(trade_file, noneuimportcols["columns"],
-                                   recode_dict, "%m/%Y")
-            dtype_dict = parse_specification(noneuimportcols["columns"])
-            data.to_sql(table_name, engine, if_exists='append',
-                        index=False, dtype=dtype_dict)
+            load_trade_table(trade_file, engine, table_name,
+                             noneuimportcols["columns"], recode_dict, "%m/%Y")
 
         elif table_name == "exports":
             recode_dict = {"border_mot":recode_border_mot, "inland_mot":recode_inland_mot}
-            data = etl_trade_table(trade_file, noneuexportcols["columns"],
-                                   recode_dict, "%m/%Y")
-            dtype_dict = parse_specification(noneuexportcols["columns"])
-            data.to_sql(table_name, engine, if_exists='append',
-                        index=False, dtype=dtype_dict)
+            load_trade_table(trade_file, engine, table_name,
+                             noneuexportcols["columns"], recode_dict, "%m/%Y")
 
 
     # GENERATE INDICES ON TABLES ---------------------------------------------------------
@@ -373,11 +392,4 @@ if __name__ == '__main__':
         "control":["comcode"]
     }
 
-    for table in indices.keys():
-        metadata = MetaData()
-        sql_table = Table(table, metadata, autoload=True, autoload_with=engine)
-
-        for col in indices[table]:
-            print(f"Creating Index on Column {col} for Table {table}")
-            sql_col = sql_table.c.get(col)
-            Index(f"ix_{table}_{col}", sql_col).create(engine)
+    generate_indices(engine, indices)
