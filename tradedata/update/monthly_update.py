@@ -72,7 +72,11 @@ def check_month_in_database(engine, datestring, threshold=50000):
         records = return_monthly_records(engine, table, datestring)
         table_records[table] = records
 
-    tables_to_load = ["control"] + [table for (table,records) in table_records.items() if records > threshold]
+    # Check for tables to load in update according to threshold and return.
+    tables_to_load = ["control"] + [table for (table,records) in table_records.items() if records < threshold]
+    [print(f"{table} has already been loaded ({records} records); skipping load.")
+     for (table,records) in table_records.items()
+     if records >= threshold]
 
     return tables_to_load
 
@@ -131,6 +135,8 @@ if __name__ == '__main__':
 
     # DOWNLOAD DATA ======================================================================
     update_path = Path(data_dir)
+    [x.unlink() for x in update_path.glob("*") if x.is_file()] # Clearout
+
     download_individual_zipfiles(update_path, list(trade_files.keys()),
                                  month = data_month, year = data_year)
 
@@ -148,8 +154,13 @@ if __name__ == '__main__':
     # LOAD DATA TO DATABASE ==============================================================
     # TODO Data Load
     # Load Files
+    files = [x for x in data_dir.glob("*") if x.is_file()]
+    files.sort()
 
-    # ETL Scripts
+    files_to_load = []
+    for f in files:
+        if trade_files[f.stem[0:6].upper()] in tables_to_load:
+            files_to_load.append(f)
 
     # Load to Database
 
