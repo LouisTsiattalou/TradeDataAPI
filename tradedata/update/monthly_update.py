@@ -163,7 +163,25 @@ if __name__ == '__main__':
             files_to_load.append(f)
 
     # Load to Database
+    for trade_file in files_to_load:
+        file_type = trade_file.stem[0:6].upper()
+        table_name = trade_files[file_type]
+        print(f"Processing {trade_file}...")
 
+        if table_name == "control":
+            load_control_table(trade_file, engine, spec_list)
 
-    # CLEAR DOWNLOAD FOLDER
-    # TODO
+        elif table_name == "dispatches" or table_name == "arrivals":
+            recode_dict = {}
+            load_trade_table(trade_file, engine, table_name,
+                             eutradecols["columns"], recode_dict, "0%Y%m")
+
+        elif table_name == "imports":
+            recode_dict = {"border_mot":recode_border_mot, "inland_mot":recode_inland_mot}
+            load_trade_table(trade_file, engine, table_name,
+                             noneuimportcols["columns"], recode_dict, "%m/%Y")
+
+        elif table_name == "exports":
+            recode_dict = {"border_mot":recode_border_mot, "inland_mot":recode_inland_mot}
+            load_trade_table(trade_file, engine, table_name,
+                             noneuexportcols["columns"], recode_dict, "%m/%Y")
