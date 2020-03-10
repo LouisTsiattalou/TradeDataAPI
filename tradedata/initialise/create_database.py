@@ -365,7 +365,7 @@ if __name__ == '__main__':
         print(f"Processing {trade_file}...")
 
         if table_name == "control":
-            load_control_table(trade_file, engine, spec_list)
+            load_control_table(trade_file, engine, controlfilecols["columns"])
 
         elif table_name == "dispatches" or table_name == "arrivals":
             recode_dict = {}

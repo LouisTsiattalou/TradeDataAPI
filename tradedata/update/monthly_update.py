@@ -20,9 +20,11 @@ import json
 
 from tradedata.initialise.download_data import unzip_trade_data
 from tradedata.initialise.create_database import connect_to_postgres
+from tradedata.initialise.create_database import parse_specification
 from tradedata.initialise.create_database import etl_control_table
 from tradedata.initialise.create_database import etl_trade_table
-
+from tradedata.initialise.create_database import load_control_table
+from tradedata.initialise.create_database import load_trade_table
 
 
 def download_individual_zipfiles(dest_path, prefixes, month = "01", year = "20"):
@@ -152,9 +154,8 @@ if __name__ == '__main__':
     tables_to_load = check_month_in_database(engine, datestring, 50000)
 
     # LOAD DATA TO DATABASE ==============================================================
-    # TODO Data Load
     # Load Files
-    files = [x for x in data_dir.glob("*") if x.is_file()]
+    files = [x for x in update_path.glob("*") if x.is_file()]
     files.sort()
 
     files_to_load = []
@@ -169,7 +170,7 @@ if __name__ == '__main__':
         print(f"Processing {trade_file}...")
 
         if table_name == "control":
-            load_control_table(trade_file, engine, spec_list)
+            load_control_table(trade_file, engine, controlfilecols["columns"])
 
         elif table_name == "dispatches" or table_name == "arrivals":
             recode_dict = {}
