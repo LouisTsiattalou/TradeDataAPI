@@ -1,6 +1,6 @@
 #+TITLE:   UK Trade Data API
 #+DATE:    January 17, 2020
-#+SINCE:   {replace with next tagged release version}
+#+SINCE:   v0.1.0
 #+STARTUP: inlineimages
 
 * Table of Contents :TOC_3:noexport:
