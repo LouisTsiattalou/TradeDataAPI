@@ -6,12 +6,13 @@ authors = ["Louis Tsiattalou <louis.tsi@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.6.1"
 tqdm = "^4.51.0"
 wget = "^3.2"
 sqlalchemy = "^1.3.20"
 pandas = "^1.1.4"
 pytest = "^6.1.2"
+requests = "^2.25.0"
 
 [tool.poetry.dev-dependencies]
 

@@ -3,6 +3,8 @@
 #+SINCE:   v0.1.0
 #+STARTUP: inlineimages
 
+*Project Status*: ON HOLD.
+
 * Table of Contents :TOC_3:noexport:
 - [[#description][Description]]
 - [[#prerequisites][Prerequisites]]
