@@ -10,5 +10,5 @@ Legacy/
 dist
 build
 htmlcov
-
+.vscode/
 env
