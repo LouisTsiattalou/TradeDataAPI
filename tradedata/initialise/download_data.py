@@ -13,8 +13,24 @@ import zipfile
 import re
 import argparse
 
+import requests
+from urllib.parse import urlparse, urljoin
+from bs4 import BeautifulSoup
+
 from pathlib import Path
 from tqdm import tqdm
+
+def get_hyperlinks(prefixes = ["SMKE19", "SMKI19", "SMKX46", "SMKM46", "SMKA12"]):
+    """Programatically extract links from the UK Trade Info Bulk Datasets page."""
+    prefix_regex = "(" + "|".join(prefixes) + ")"
+    url_base = "https://www.uktradeinfo.com/trade-data/latest-bulk-datasets/bulk-datasets-archive/"
+    soup = BeautifulSoup(requests.get(url_base).content, "html.parser")
+    links = [x["href"] for x in soup.findAll("a")]
+    links = [str(url) for url in links if re.search(prefix_regex, str(url), re.IGNORECASE)]
+    links = [x for x in links if not re.search("#", x)]
+    links = ["https://www.uktradeinfo.com" + x for x in links]
+    return(links)
+
 
 def download_zipfiles(dest_path, min_year=2010, max_year=2019):
     """Downloads zipfiles from UKTradeInfo for later extraction."""
@@ -27,20 +43,20 @@ def download_zipfiles(dest_path, min_year=2010, max_year=2019):
         except:
             return remote_file_path
 
-    # Run trade_data_download func for side effect, build list of failed downloads
-    # for future inspection if necessary.
-
-    url = "https://www.uktradeinfo.com/Statistics/Documents/Data Downloads/"
-    prefixes = ["SMKE19", "SMKI19", "SMKX46", "SMKM46", "SMKA12"]
     os.makedirs(dest_path, exist_ok=True)
 
+    links = get_hyperlinks() # Get all files by default
+    years = list(range(min_year, max_year+1))
+    years = [str(year) + "archive" for year in years]
+    years_regex = "(" + "|".join(years) + ")"
+    links = [x for x in links if re.search(years_regex, x, re.IGNORECASE)]
+
     fails = []
-    # Loop over year & trade type, download zip
-    for i in tqdm(range(min_year, max_year+1)):
-        for prefix in prefixes:
-            fails.append(trade_data_download(f"{url}{prefix}_{i}archive.zip"))
-            if i >= 2016:
-                fails.append(trade_data_download(f"{url}{prefix}_{i}archive_JulDec.zip"))
+
+    # Run trade_data_download func for side effect, build list of failed downloads
+    # for future inspection if necessary.
+    for link in tqdm(links):
+        fails.append(trade_data_download(link))
 
     fails = [x for x in fails if x is not None]
     if len(fails) == 0:
@@ -106,7 +122,7 @@ if __name__ == "__main__":
     parser.add_argument("--min_year", type=int,
                         help="Starting Year for the downloads.",
                         required = True, default = 2010)
-    parser.add_argument("--max_year",type=int,
+    parser.add_argument("--max_year", type=int,
                         help="Ending Year for the downloads.",
                         required = True, default = 2019)
 
