@@ -23,12 +23,25 @@ from tqdm import tqdm
 def get_hyperlinks(prefixes = ["SMKE19", "SMKI19", "SMKX46", "SMKM46", "SMKA12"]):
     """Programatically extract links from the UK Trade Info Bulk Datasets page."""
     prefix_regex = "(" + "|".join(prefixes) + ")"
+
+    # Archive
     url_base = "https://www.uktradeinfo.com/trade-data/latest-bulk-datasets/bulk-datasets-archive/"
     soup = BeautifulSoup(requests.get(url_base).content, "html.parser")
     links = [x["href"] for x in soup.findAll("a")]
     links = [str(url) for url in links if re.search(prefix_regex, str(url), re.IGNORECASE)]
     links = [x for x in links if not re.search("#", x)]
     links = ["https://www.uktradeinfo.com" + x for x in links]
+
+    # This Year
+    url_base = "https://www.uktradeinfo.com/trade-data/latest-bulk-datasets/"
+    soup = BeautifulSoup(requests.get(url_base).content, "html.parser")
+    ty_links = [x["href"] for x in soup.findAll("a")]
+    ty_links = [str(url) for url in ty_links if re.search(prefix_regex, str(url), re.IGNORECASE)]
+    ty_links = [x for x in ty_links if not re.search("#", x)]
+    ty_links = ["https://www.uktradeinfo.com" + x for x in ty_links]
+
+    links.extend(ty_links)
+
     return(links)
 
 
