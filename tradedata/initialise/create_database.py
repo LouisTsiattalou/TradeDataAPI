@@ -136,8 +136,9 @@ def etl_control_table(path, spec_list):
     x_file = open(path, "r", encoding = "windows-1252").read().replace("\0","").split("\n")
     x_file = [x.split("|") for x in x_file]
 
-    # Kill first, last and second last row
+    # Kill first, last and second last row. Kill garbage rows with fewer than 27 columns
     x_file = x_file[1:-2]
+    x_file = [row for row in x_file if len(row) >= 27]
 
     # If len(x_file[i] == 28), there is a double description column that needs to be merged.
     if len(x_file[0]) == 28:
@@ -283,7 +284,7 @@ if __name__ == '__main__':
 
     # CONNECT TO DATABASE ----------------------------------------------------------------
     engine = connect_to_postgres(username = "postgres", password = "postgres",
-                                 host = "localhost", database = "trade")
+                                 host = "localhost", database = "trade_2")
 
     # CREATE TABLES ----------------------------------------------------------------------
 
