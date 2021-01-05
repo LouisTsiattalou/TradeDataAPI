@@ -20,6 +20,7 @@ from bs4 import BeautifulSoup
 from pathlib import Path
 from tqdm import tqdm
 
+# FUNCTIONS ####################################################################
 def get_hyperlinks(prefixes = ["SMKE19", "SMKI19", "SMKX46", "SMKM46", "SMKA12"]):
     """Programatically extract links from the UK Trade Info Bulk Datasets page."""
     prefix_regex = "(" + "|".join(prefixes) + ")"

@@ -25,6 +25,7 @@ from tradedata.initialise.create_database import etl_control_table
 from tradedata.initialise.create_database import etl_trade_table
 from tradedata.initialise.create_database import load_control_table
 from tradedata.initialise.create_database import load_trade_table
+from tradedata.utils import read_credentials
 
 
 def download_individual_zipfiles(dest_path, prefixes, month = "01", year = "20"):
@@ -146,8 +147,10 @@ if __name__ == '__main__':
 
     # CHECK DATABASE FOR UPDATE ==========================================================
     # Connect to Database
-    engine = connect_to_postgres(username = "postgres", password = "postgres",
-                                 host = "localhost", database = "trade")
+    
+    db_c = read_credentials("conf/credentials.yml")["database"]
+    engine = connect_to_postgres(username = db_c["username"], password = db_c["password"],
+                                 host = db_c["host"], database = db_c["database"])
 
     # Return table names if they don't contain data arg year/month combination
     datestring = f"20{data_year}{data_month}01"

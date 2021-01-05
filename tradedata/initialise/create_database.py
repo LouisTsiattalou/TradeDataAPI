@@ -21,7 +21,9 @@ from sqlalchemy import Table, Column, String, Integer, Float, Boolean, BigIntege
 from sqlalchemy import ForeignKey, Index, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import insert
 
+from tradedata.utils import read_credentials
 
+# FUNCTIONS ####################################################################
 
 def connect_to_postgres(username = "", password = "", host = "localhost", database = ""):
     """Returns a SQLAlchemy PostgreSQL engine using psycopg2"""
@@ -283,8 +285,9 @@ def generate_indices(engine, index_dict):
 if __name__ == '__main__':
 
     # CONNECT TO DATABASE ----------------------------------------------------------------
-    engine = connect_to_postgres(username = "postgres", password = "postgres",
-                                 host = "localhost", database = "trade_2")
+    db_c = read_credentials("conf/credentials.yml")["database"]
+    engine = connect_to_postgres(username = db_c["username"], password = db_c["password"],
+                                 host = db_c["host"], database = db_c["database"])
 
     # CREATE TABLES ----------------------------------------------------------------------
 
