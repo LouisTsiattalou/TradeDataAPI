@@ -12,3 +12,4 @@ build
 htmlcov
 .vscode/
 env
+conf/credentials.yml
