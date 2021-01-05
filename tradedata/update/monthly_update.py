@@ -17,8 +17,10 @@ from pathlib import Path
 import os
 import argparse
 import json
+from tqdm import tqdm
 
 from tradedata.initialise.download_data import unzip_trade_data
+from tradedata.initialise.download_data import get_hyperlinks
 from tradedata.initialise.create_database import connect_to_postgres
 from tradedata.initialise.create_database import parse_specification
 from tradedata.initialise.create_database import etl_control_table
@@ -28,11 +30,16 @@ from tradedata.initialise.create_database import load_trade_table
 from tradedata.utils import read_credentials
 
 
-def download_individual_zipfiles(dest_path, prefixes, month = "01", year = "20"):
+# FUNCTIONS ####################################################################
+def download_individual_zipfiles(dest_path: str, month: str = "01", year: str = "20"):
     """Downloads single month trade data zip files from UKTradeInfo"""
-    url = "https://www.uktradeinfo.com/Statistics/Documents/Data Downloads/"
-    dest_path = str(dest_path.absolute())
-    os.makedirs(dest_path, exist_ok=True)
+
+    links = get_hyperlinks() # Get all files by default
+    links = [x for x in links if x.find(f"{year}{month}.zip") >= 0]
+
+    # Create path
+    Path(dest_path).mkdir(exist_ok=True)
+    dest_path = str(dest_path) # Ensure string for wget compatibility
 
     def trade_data_download(remote_file_path, destination = dest_path):
         """Download data if it can be found. Return remote file name if exception occurs"""
@@ -42,19 +49,19 @@ def download_individual_zipfiles(dest_path, prefixes, month = "01", year = "20")
         except:
             return remote_file_path
 
-    # Loop over Trade Data files from prefixes
     fails = []
-    for prefix in prefixes:
-        fails.append(trade_data_download(f"{url}{prefix}{year}{month}.zip", dest_path))
 
-    # Print failed downloads
+    # Run trade_data_download func for side effect, build list of failed downloads
+    # for future inspection if necessary.
+    for link in tqdm(links):
+        fails.append(trade_data_download(link))
+
     fails = [x for x in fails if x is not None]
     if len(fails) == 0:
         print("All Zip Files Downloaded.")
     else:
         print("The following Zip Files could not be downloaded:")
         print("\n".join(fails))
-
 
 
 def check_month_in_database(engine, datestring, threshold=50000):
@@ -84,6 +91,7 @@ def check_month_in_database(engine, datestring, threshold=50000):
     return tables_to_load
 
 
+# MAIN #########################################################################
 if __name__ == '__main__':
 
     # Parse Arguments
@@ -138,10 +146,11 @@ if __name__ == '__main__':
 
     # DOWNLOAD DATA ======================================================================
     update_path = Path(data_dir)
-    [x.unlink() for x in update_path.glob("*") if x.is_file()] # Clearout
+    for f in update_path.glob("*"): # Clearout
+        if f.is_file():
+            f.unlink()
 
-    download_individual_zipfiles(update_path, list(trade_files.keys()),
-                                 month = data_month, year = data_year)
+    download_individual_zipfiles(update_path, month = data_month, year = data_year)
 
     unzip_trade_data(update_path)
 
@@ -189,3 +198,5 @@ if __name__ == '__main__':
             recode_dict = {"border_mot":recode_border_mot, "inland_mot":recode_inland_mot}
             load_trade_table(trade_file, engine, table_name,
                              noneuexportcols["columns"], recode_dict, "%m/%Y")
+
+    print("Monthly Update Completed Successfully!")
